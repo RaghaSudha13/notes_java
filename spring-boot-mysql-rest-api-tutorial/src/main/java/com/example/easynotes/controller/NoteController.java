@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
 @RestController
@@ -20,6 +21,17 @@ public class NoteController {
     @GetMapping("/notes")
     public List<Note> getAllNotes() {
         return noteRepository.findAll();
+    }
+
+    @GetMapping("/notes/search")
+    public List<Note> searchNotes(@RequestParam @NotBlank(message = "query parameter must not be blank") String query) {
+        String trimmed = query.trim();
+        try {
+            Long id = Long.parseLong(trimmed);
+            return noteRepository.searchByIdOrTitle(id, trimmed);
+        } catch (NumberFormatException e) {
+            return noteRepository.searchByTitle(trimmed);
+        }
     }
 
     @PostMapping("/notes")
