@@ -1,0 +1,58 @@
+tasks:
+  start-postgres:
+    name: Start PostgreSQL
+    description: Start PostgreSQL container via docker-in-docker.
+    command: |
+      docker rm -f postgres-notes 2>/dev/null || true
+      docker run -d \
+        --name postgres-notes \
+        -e POSTGRES_DB=notes_app \
+        -e POSTGRES_USER=notes_user \
+        -e POSTGRES_PASSWORD=notes_pass \
+        -p 5432:5432 \
+        postgres:16-alpine
+      echo "Waiting for PostgreSQL to be ready..."
+      for i in $(seq 1 30); do
+        if docker exec postgres-notes pg_isready -U notes_user -d notes_app > /dev/null 2>&1; then
+          echo "PostgreSQL is ready."
+          exit 0
+        fi
+        sleep 1
+      done
+      echo "PostgreSQL failed to start within 30 seconds."
+      exit 1
+    triggeredBy:
+      - postDevcontainerStart
+
+  install-deps:
+    name: Install dependencies
+    description: Download Maven dependencies and build the project.
+    command: |
+      cd spring-boot-mysql-rest-api-tutorial
+      mvn dependency:resolve -q
+    triggeredBy:
+      - postDevcontainerStart
+    dependsOn:
+      - start-postgres
+
+  build:
+    name: Build project
+    description: Compile and package the Spring Boot application.
+    command: |
+      cd spring-boot-mysql-rest-api-tutorial
+      mvn package -DskipTests -q
+    triggeredBy:
+      - postDevcontainerStart
+    dependsOn:
+      - install-deps
+
+services:
+  app:
+    name: Spring Boot App
+    description: Run the EasyNotes Spring Boot application.
+    commands:
+      start: |
+        cd spring-boot-mysql-rest-api-tutorial
+        mvn spring-boot:run
+      ready: |
+        curl -sf http://localhost:8080 > /dev/null

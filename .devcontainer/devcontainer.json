@@ -1,0 +1,27 @@
+{
+	"name": "EasyNotes Java",
+	"image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+	"features": {
+		"ghcr.io/devcontainers/features/java": {
+			"version": "21",
+			"installMaven": "true"
+		},
+		"ghcr.io/devcontainers/features/docker-in-docker": {}
+	},
+	"containerEnv": {
+		"SPRING_DATASOURCE_URL": "jdbc:postgresql://localhost:5432/notes_app",
+		"SPRING_DATASOURCE_USERNAME": "notes_user",
+		"SPRING_DATASOURCE_PASSWORD": "notes_pass"
+	},
+	"forwardPorts": [8080, 5432],
+	"portsAttributes": {
+		"8080": {
+			"label": "Spring Boot App",
+			"onAutoForward": "notify"
+		},
+		"5432": {
+			"label": "PostgreSQL",
+			"onAutoForward": "silent"
+		}
+	}
+}
