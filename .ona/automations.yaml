@@ -1,16 +1,25 @@
 tasks:
   start-postgres:
     name: Start PostgreSQL
-    description: Start PostgreSQL container via docker-in-docker.
+    description: Start PostgreSQL container with persistent volume.
     command: |
-      docker rm -f postgres-notes 2>/dev/null || true
-      docker run -d \
-        --name postgres-notes \
-        -e POSTGRES_DB=notes_app \
-        -e POSTGRES_USER=notes_user \
-        -e POSTGRES_PASSWORD=notes_pass \
-        -p 5432:5432 \
-        postgres:16-alpine
+      # Create a named volume for data persistence across restarts
+      docker volume create pgdata-notes 2>/dev/null || true
+
+      # Reuse existing container if present, otherwise create a new one
+      if docker inspect postgres-notes > /dev/null 2>&1; then
+        docker start postgres-notes 2>/dev/null || true
+      else
+        docker run -d \
+          --name postgres-notes \
+          -e POSTGRES_DB=notes_app \
+          -e POSTGRES_USER=notes_user \
+          -e POSTGRES_PASSWORD=notes_pass \
+          -v pgdata-notes:/var/lib/postgresql/data \
+          -p 5432:5432 \
+          postgres:16-alpine
+      fi
+
       echo "Waiting for PostgreSQL to be ready..."
       for i in $(seq 1 30); do
         if docker exec postgres-notes pg_isready -U notes_user -d notes_app > /dev/null 2>&1; then
